@@ -1,46 +1,82 @@
+<div align="center">
+
 # Cloud Drive
 
-A personal cloud file storage web app built with Next.js, Prisma, and PostgreSQL.
+### Your personal cloud file storage, self-hosted.
+
+A full-featured file manager you can deploy on your own server — upload, organize, search, and share files with anyone.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)](https://prisma.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql)](https://postgresql.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://typescriptlang.org)
+
+<br />
+
+[**Live Demo**](#) · [**Report Bug**](https://github.com/JamesCowx/cloud-drive/issues) · [**Request Feature**](https://github.com/JamesCowx/cloud-drive/issues)
+
+</div>
+
+---
+
+## Overview
+
+Cloud Drive is a self-hosted alternative to Google Drive and Dropbox. It gives you full control over your files — no subscriptions, no data limits, no third-party access.
+
+Built for developers and privacy-conscious users who want a simple, fast, and secure way to store and share files from their own server.
 
 ## Features
 
-- User registration and login (JWT cookie sessions)
-- Upload files (drag & drop or file picker)
-- Organize files into folders
-- Rename and delete files/folders
-- Full-text file search
-- Share files via public download links
-- Download files individually
+| Feature | Description |
+|---|---|
+| **Auth System** | Register and login with secure JWT sessions stored in httpOnly cookies |
+| **File Upload** | Drag & drop or file picker — supports multiple files at once |
+| **Folder Manager** | Create folders, browse with breadcrumbs, nest as deep as you need |
+| **Search** | Instant full-text search across all your files and folders |
+| **Share Links** | Generate public download URLs for any file — no login required to download |
+| **Rename & Delete** | Full CRUD operations on files and folders |
+| **Responsive UI** | Works on desktop and mobile — dark login, light dashboard |
+| **Self-Hosted** | Deploy on any VPS — your data never leaves your server |
 
 ## Tech Stack
 
-- **Framework:** Next.js 16 (App Router, Turbopack)
-- **Database:** PostgreSQL via Prisma 7 (driver adapters)
-- **Auth:** bcryptjs + jose (JWT in httpOnly cookies)
-- **Styling:** Tailwind CSS v4
-- **Hosting:** VPS (DigitalOcean, Railway, Render)
-
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-npm install
+```
+Frontend   →  Next.js 16 (App Router, Turbopack) + React 19 + Tailwind CSS 4
+Backend    →  Next.js Route Handlers (Node.js runtime)
+Database   →  PostgreSQL 17 via Prisma 7 (driver adapters)
+Auth       →  bcryptjs (password hashing) + jose (JWT signing)
+Storage    →  Local filesystem (configurable upload directory)
+Deployment →  Any VPS (Google Cloud, DigitalOcean, Railway, Render)
 ```
 
-### 2. Set up PostgreSQL
+## Getting Started
 
-Create a PostgreSQL database (local or hosted). Then copy `.env.example` to `.env` and fill in the values:
+### Prerequisites
+
+- **Node.js** 20.9+
+- **PostgreSQL** 14+
+- **npm** or your preferred package manager
+
+### Installation
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/JamesCowx/cloud-drive.git
+cd cloud-drive
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your values:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/clouddrive"
-AUTH_SECRET="a-long-random-string-here"
+DATABASE_URL="postgresql://postgres:password@localhost:5433/clouddrive"
+AUTH_SECRET="your-secret-key-here"
 UPLOAD_DIR="./storage"
 ```
 
@@ -50,128 +86,199 @@ Generate a secure `AUTH_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 3. Run migrations and start
-
 ```bash
+# 4. Run database migrations
 npx prisma migrate dev
+
+# 5. Start the development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), register an account, and start uploading.
+Open [http://localhost:3000](http://localhost:3000) and create your account.
 
 ## Project Structure
 
 ```
-prisma/
-  schema.prisma          # Database schema
-prisma.config.ts         # Prisma config (migrate connection)
-src/
-  app/
-    api/
-      auth/              # Login, register, logout endpoints
-      files/             # File CRUD, upload, download
-      shares/            # Share link creation, public download
-    files/               # File manager pages
-    login/               # Login page
-    register/            # Registration page
-    s/[token]/           # Public share page
-  components/
-    auth-form.tsx        # Login/register form
-    drive-client.tsx     # File manager UI
-    logout-button.tsx    # Logout button
-  lib/
-    auth.ts              # JWT + session helpers
-    drive.ts             # File/folder listing, search, ancestors
-    format.ts            # Bytes/date formatting
-    icons.tsx            # SVG icon components
-    prisma.ts            # Prisma client singleton
-    storage.ts           # Disk upload helpers
+cloud-drive/
+├── prisma/
+│   ├── schema.prisma              # Database models (User, File, Share)
+│   └── migrations/                # Auto-generated migrations
+├── prisma.config.ts               # Prisma CLI configuration
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── auth/
+│   │   │   │   ├── login/         # POST /api/auth/login
+│   │   │   │   ├── logout/        # POST /api/auth/logout
+│   │   │   │   └── register/      # POST /api/auth/register
+│   │   │   ├── files/
+│   │   │   │   ├── [id]/
+│   │   │   │   │   ├── download/  # GET  /api/files/[id]/download
+│   │   │   │   │   └── route.ts   # PATCH / DELETE /api/files/[id]
+│   │   │   │   └── route.ts       # GET (list) / POST (upload/folder)
+│   │   │   └── shares/
+│   │   │       ├── [token]/
+│   │   │       │   └── download/  # GET  /api/shares/[token]/download
+│   │   │       └── route.ts       # POST (create) / DELETE (revoke)
+│   │   ├── files/
+│   │   │   ├── [id]/page.tsx      # Folder view
+│   │   │   ├── layout.tsx         # Auth guard + header
+│   │   │   └── page.tsx           # Root file listing
+│   │   ├── login/page.tsx         # Login page (dark theme)
+│   │   ├── register/page.tsx      # Register page (dark theme)
+│   │   ├── s/[token]/page.tsx     # Public share page
+│   │   ├── layout.tsx             # Root layout
+│   │   └── page.tsx               # Redirect to /files or /login
+│   ├── components/
+│   │   ├── auth-form.tsx          # Login/register form component
+│   │   ├── drive-client.tsx       # Main file manager UI
+│   │   └── logout-button.tsx      # Logout button
+│   └── lib/
+│       ├── auth.ts                # JWT + session helpers
+│       ├── drive.ts               # File/folder CRUD + search
+│       ├── format.ts              # Bytes/date formatting
+│       ├── icons.tsx              # Hand-crafted SVG icons
+│       ├── prisma.ts              # Prisma client singleton
+│       └── storage.ts             # Filesystem upload helpers
+├── .env.example                   # Environment variable template
+└── package.json                   # Dependencies and scripts
 ```
+
+## API Reference
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Create a new account | No |
+| `POST` | `/api/auth/login` | Sign in | No |
+| `POST` | `/api/auth/logout` | Sign out | Yes |
+| `GET` | `/api/files?folder={id}&q={search}` | List files/folders | Yes |
+| `POST` | `/api/files` | Upload files (multipart) | Yes |
+| `POST` | `/api/files?action=createFolder` | Create a new folder | Yes |
+| `PATCH` | `/api/files/{id}` | Rename a file/folder | Yes |
+| `DELETE` | `/api/files/{id}` | Delete a file/folder | Yes |
+| `GET` | `/api/files/{id}/download` | Download a file | Yes |
+| `POST` | `/api/shares` | Create a share link | Yes |
+| `DELETE` | `/api/shares` | Revoke a share link | Yes |
+| `GET` | `/api/shares/{token}/download` | Download shared file | No |
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `AUTH_SECRET` | Yes | Secret for signing JWT session cookies |
-| `UPLOAD_DIR` | No | Where files are stored on disk (default: `./storage`) |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `AUTH_SECRET` | Yes | — | Secret key for JWT signing (min 32 chars) |
+| `UPLOAD_DIR` | No | `./storage` | Directory for uploaded files |
 
-## Deploy to VPS
+## Deployment
 
-### Railway
+<details>
+<summary><strong>Google Cloud (Compute Engine)</strong></summary>
 
-1. Create a **PostgreSQL** service on Railway
-2. Create a **Next.js** service connected to this repo
-3. Set environment variables in the Next.js service:
-   - `DATABASE_URL` from the PostgreSQL service's `DATABASE_URL` variable
-   - `AUTH_SECRET` — generate a random string
-   - `UPLOAD_DIR` — mount a **Railway Volume** at `/data` and set `UPLOAD_DIR="/data"`
-4. Railway will run `prisma migrate deploy` automatically via the `postinstall` script
-
-### Render
-
-1. Create a **PostgreSQL** database on Render
-2. Create a **Web Service** from this repo
-3. Set environment variables:
-   - `DATABASE_URL` from the Render PostgreSQL service
-   - `AUTH_SECRET` — generate a random string
-   - `UPLOAD_DIR` — attach a **Persistent Disk** mounted at `/data` and set `UPLOAD_DIR="/data"`
-4. Render will run `prisma migrate deploy` automatically via the `postinstall` script
-
-### DigitalOcean App Platform
-
-1. Create a managed **PostgreSQL** database on DigitalOcean
-2. Deploy this repo as a **Docker** or **Node.js** app
-3. Set environment variables:
-   - `DATABASE_URL` from your managed database
-   - `AUTH_SECRET` — generate a random string
-   - `UPLOAD_DIR` — use a **Spaces** bucket or attach a volume. For a volume at `/data`, set `UPLOAD_DIR="/data"`
-
-### Self-hosted VPS (Ubuntu/Debian)
+1. Create an Ubuntu 22.04 VM with HTTP/HTTPS firewall rules
+2. Install Node.js 20, PostgreSQL 17, nginx
+3. Clone the repo, configure `.env`, run `npx prisma migrate deploy`
+4. Build with `npm run build`, start with PM2
+5. Set up nginx as a reverse proxy on port 80/443
 
 ```bash
-# Install Node.js 20+ and PostgreSQL
-sudo apt update && sudo apt install -y nodejs postgresql
+# Quick setup on a fresh Ubuntu VM:
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs postgresql nginx
+sudo npm install -g pm2
+```
 
-# Clone the repo
-git clone <your-repo-url> && cd cloud-drive
+</details>
 
-# Set up PostgreSQL
+<details>
+<summary><strong>Railway</strong></summary>
+
+1. Create a PostgreSQL service
+2. Deploy this repo as a Node.js service
+3. Set `DATABASE_URL`, `AUTH_SECRET`, and `UPLOAD_DIR` (use a Volume at `/data`)
+4. Railway auto-runs `prisma migrate deploy` via `postinstall`
+
+</details>
+
+<details>
+<summary><strong>Render</strong></summary>
+
+1. Create a PostgreSQL database
+2. Create a Web Service from this repo
+3. Set environment variables and attach a Persistent Disk at `/data`
+4. Build command: `npm run build` · Start command: `npm start`
+
+</details>
+
+<details>
+<summary><strong>DigitalOcean App Platform</strong></summary>
+
+1. Create a managed PostgreSQL database
+2. Deploy as a Docker/Node.js app
+3. Set `DATABASE_URL`, `AUTH_SECRET`, `UPLOAD_DIR`
+
+</details>
+
+<details>
+<summary><strong>Self-hosted VPS (Ubuntu/Debian)</strong></summary>
+
+```bash
+# Install dependencies
+sudo apt update && sudo apt install -y nodejs postgresql nginx
+sudo npm install -g pm2
+
+# Set up database
 sudo -u postgres createdb clouddrive
-sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'yourpassword';"
 
-# Configure
-cp .env.example .env
-# Edit DATABASE_URL, AUTH_SECRET, UPLOAD_DIR
-
-# Install and build
+# Clone and configure
+git clone https://github.com/JamesCowx/cloud-drive.git
+cd cloud-drive
+cp .env.example .env   # Edit with your values
 npm install
 npx prisma migrate deploy
+
+# Build and run
 npm run build
-npm start
+pm2 start npm --name cloud-drive -- start
+pm2 save && pm2 startup
+
+# Configure nginx (see README for full config)
+sudo ln -s /etc/nginx/sites-available/cloud-drive /etc/nginx/sites-enabled
 ```
 
-The app runs on port 3000 by default. Use nginx or caddy as a reverse proxy with HTTPS.
+</details>
 
-## Database Migrations
+## Database Commands
 
 ```bash
-# Development (creates migration files)
-npm run db:migrate
-
-# Production (applies pending migrations)
-npm run db:deploy
-
-# Open Prisma Studio
-npm run db:studio
+npm run db:migrate    # Create new migration (development)
+npm run db:deploy     # Apply pending migrations (production)
+npm run db:studio     # Open Prisma Studio (visual DB browser)
 ```
 
-## File Storage
+## Storage
 
-Uploaded files are stored on the local filesystem under `UPLOAD_DIR`. Each user gets their own directory. Files are named with UUIDs to avoid collisions.
+Files are stored on disk under `UPLOAD_DIR`. Each user gets an isolated directory. Filenames use UUIDs to prevent collisions.
 
-**Important:** Back up your `UPLOAD_DIR` regularly. Files are not stored in the database.
+> **Important:** Back up your `UPLOAD_DIR` regularly — files are not stored in the database.
+
+## Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<div align="center">
+
+**[James Cowx](https://github.com/JamesCowx)** · Built with Next.js, Prisma, and PostgreSQL
+
+</div>
