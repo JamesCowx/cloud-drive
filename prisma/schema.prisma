@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  files        File[]
+  shares       Share[]
+}
+
+model File {
+  id         String   @id @default(cuid())
+  name       String
+  isFolder   Boolean  @default(false)
+  mimeType   String?
+  size       BigInt   @default(0)
+  storageKey String?
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     File?    @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children   File[]   @relation("FolderTree")
+  shares     Share[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, parentId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model Share {
+  id        String   @id @default(cuid())
+  token     String   @unique @default(cuid())
+  fileId    String
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([userId])
+}

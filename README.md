@@ -1,36 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cloud Drive
 
-## Getting Started
+A personal cloud file storage web app built with Next.js, Prisma, and PostgreSQL.
 
-First, run the development server:
+## Features
+
+- User registration and login (JWT cookie sessions)
+- Upload files (drag & drop or file picker)
+- Organize files into folders
+- Rename and delete files/folders
+- Full-text file search
+- Share files via public download links
+- Download files individually
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **Database:** PostgreSQL via Prisma 7 (driver adapters)
+- **Auth:** bcryptjs + jose (JWT in httpOnly cookies)
+- **Styling:** Tailwind CSS v4
+- **Hosting:** VPS (DigitalOcean, Railway, Render)
+
+## Quick Start
+
+### 1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up PostgreSQL
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a PostgreSQL database (local or hosted). Then copy `.env.example` to `.env` and fill in the values:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env
+```
 
-## Learn More
+Edit `.env`:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/clouddrive"
+AUTH_SECRET="a-long-random-string-here"
+UPLOAD_DIR="./storage"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Generate a secure `AUTH_SECRET`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-## Deploy on Vercel
+### 3. Run migrations and start
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx prisma migrate dev
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000), register an account, and start uploading.
+
+## Project Structure
+
+```
+prisma/
+  schema.prisma          # Database schema
+prisma.config.ts         # Prisma config (migrate connection)
+src/
+  app/
+    api/
+      auth/              # Login, register, logout endpoints
+      files/             # File CRUD, upload, download
+      shares/            # Share link creation, public download
+    files/               # File manager pages
+    login/               # Login page
+    register/            # Registration page
+    s/[token]/           # Public share page
+  components/
+    auth-form.tsx        # Login/register form
+    drive-client.tsx     # File manager UI
+    logout-button.tsx    # Logout button
+  lib/
+    auth.ts              # JWT + session helpers
+    drive.ts             # File/folder listing, search, ancestors
+    format.ts            # Bytes/date formatting
+    icons.tsx            # SVG icon components
+    prisma.ts            # Prisma client singleton
+    storage.ts           # Disk upload helpers
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `AUTH_SECRET` | Yes | Secret for signing JWT session cookies |
+| `UPLOAD_DIR` | No | Where files are stored on disk (default: `./storage`) |
+
+## Deploy to VPS
+
+### Railway
+
+1. Create a **PostgreSQL** service on Railway
+2. Create a **Next.js** service connected to this repo
+3. Set environment variables in the Next.js service:
+   - `DATABASE_URL` from the PostgreSQL service's `DATABASE_URL` variable
+   - `AUTH_SECRET` — generate a random string
+   - `UPLOAD_DIR` — mount a **Railway Volume** at `/data` and set `UPLOAD_DIR="/data"`
+4. Railway will run `prisma migrate deploy` automatically via the `postinstall` script
+
+### Render
+
+1. Create a **PostgreSQL** database on Render
+2. Create a **Web Service** from this repo
+3. Set environment variables:
+   - `DATABASE_URL` from the Render PostgreSQL service
+   - `AUTH_SECRET` — generate a random string
+   - `UPLOAD_DIR` — attach a **Persistent Disk** mounted at `/data` and set `UPLOAD_DIR="/data"`
+4. Render will run `prisma migrate deploy` automatically via the `postinstall` script
+
+### DigitalOcean App Platform
+
+1. Create a managed **PostgreSQL** database on DigitalOcean
+2. Deploy this repo as a **Docker** or **Node.js** app
+3. Set environment variables:
+   - `DATABASE_URL` from your managed database
+   - `AUTH_SECRET` — generate a random string
+   - `UPLOAD_DIR` — use a **Spaces** bucket or attach a volume. For a volume at `/data`, set `UPLOAD_DIR="/data"`
+
+### Self-hosted VPS (Ubuntu/Debian)
+
+```bash
+# Install Node.js 20+ and PostgreSQL
+sudo apt update && sudo apt install -y nodejs postgresql
+
+# Clone the repo
+git clone <your-repo-url> && cd cloud-drive
+
+# Set up PostgreSQL
+sudo -u postgres createdb clouddrive
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'yourpassword';"
+
+# Configure
+cp .env.example .env
+# Edit DATABASE_URL, AUTH_SECRET, UPLOAD_DIR
+
+# Install and build
+npm install
+npx prisma migrate deploy
+npm run build
+npm start
+```
+
+The app runs on port 3000 by default. Use nginx or caddy as a reverse proxy with HTTPS.
+
+## Database Migrations
+
+```bash
+# Development (creates migration files)
+npm run db:migrate
+
+# Production (applies pending migrations)
+npm run db:deploy
+
+# Open Prisma Studio
+npm run db:studio
+```
+
+## File Storage
+
+Uploaded files are stored on the local filesystem under `UPLOAD_DIR`. Each user gets their own directory. Files are named with UUIDs to avoid collisions.
+
+**Important:** Back up your `UPLOAD_DIR` regularly. Files are not stored in the database.
+
+## License
+
+MIT
