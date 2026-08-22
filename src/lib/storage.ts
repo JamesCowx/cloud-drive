@@ -5,7 +5,7 @@ function uploadRoot(): string {
   return process.env.UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "storage");
 }
 
-export function userDir(userId: string): string {
+function userDir(userId: string): string {
   return path.join(uploadRoot(), userId);
 }
 
@@ -22,11 +22,6 @@ export async function ensureUserDir(userId: string): Promise<string> {
   const dir = userDir(userId);
   await fs.mkdir(dir, { recursive: true });
   return dir;
-}
-
-export async function writeUpload(userId: string, fileName: string) {
-  const dir = await ensureUserDir(userId);
-  return path.join(/*turbopackIgnore: true*/ dir, fileName);
 }
 
 export async function deleteUpload(userId: string, storageKey: string) {

@@ -220,7 +220,10 @@ export function DriveClient({ initial }: { initial: DriveListing }) {
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
   }, []);
 
   const searching = query.trim().length > 0;

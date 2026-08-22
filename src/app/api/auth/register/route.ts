@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const name = body.name?.trim();
   const password = body.password;
 
-  if (!email || !email.includes("@")) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Enter a valid email" }, { status: 400 });
   }
   if (!name || name.length < 1 || name.length > 60) {

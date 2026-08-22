@@ -8,6 +8,23 @@ import { prisma } from "@/lib/prisma";
 import { listDrive, folderBelongsToUser, uniqueName } from "@/lib/drive";
 import { resolveStorageKey } from "@/lib/storage";
 
+const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE ?? 100 * 1024 * 1024);
+
+const BLOCKED_EXTENSIONS = new Set([
+  "exe", "bat", "cmd", "com", "msi", "scr", "pif",
+  "sh", "bash", "csh", "ksh",
+  "php", "jsp", "asp", "aspx", "cgi", "pl",
+  "dll", "so", "dylib", "sys", "vxd",
+  "vbs", "vbe", "wsf", "wsh", "ps1", "psm1",
+]);
+
+function isBlockedFile(name: string): boolean {
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0 || dot === name.length - 1) return false;
+  const ext = name.slice(dot + 1).toLowerCase();
+  return BLOCKED_EXTENSIONS.has(ext);
+}
+
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -36,9 +53,12 @@ export async function POST(request: NextRequest) {
 
   if (action === "createFolder") {
     const body = await request.json().catch(() => null);
-    const name = body?.name?.trim() ?? "New folder";
+    const name = (body?.name?.trim() ?? "New folder").slice(0, 200);
     const parentId = body?.parentId ?? null;
 
+    if (!name) {
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
     if (parentId && !(await folderBelongsToUser(session.userId, parentId))) {
       return NextResponse.json({ error: "Folder not found" }, { status: 404 });
     }
@@ -78,6 +98,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No files provided" }, { status: 400 });
   }
 
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `"${file.name}" exceeds the ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB limit` },
+        { status: 413 },
+      );
+    }
+    if (isBlockedFile(file.name)) {
+      return NextResponse.json(
+        { error: `"${file.name}" has a blocked file type` },
+        { status: 400 },
+      );
+    }
+  }
+
   const created = [];
 
   for (const file of files) {
@@ -105,7 +140,7 @@ export async function POST(request: NextRequest) {
         userId: session.userId,
         parentId: parent,
       },
-      select: { id: true, name: true, size: true },
+      select: { id: true, name: true },
     });
     created.push(record);
   }

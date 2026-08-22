@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createReadStream } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { Readable } from "node:stream";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +28,10 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const filePath = resolveStorageKey(session.userId, record.storageKey);
+  if (!existsSync(filePath)) {
+    return NextResponse.json({ error: "File not found on disk" }, { status: 404 });
+  }
+
   const nodeStream = createReadStream(filePath);
   const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
 

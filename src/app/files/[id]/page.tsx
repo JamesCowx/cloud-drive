@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { listDrive, folderBelongsToUser } from "@/lib/drive";
 import { getSession } from "@/lib/auth";
 import { DriveClient } from "@/components/drive-client";
@@ -11,12 +11,13 @@ export default async function FilesFolderPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getSession();
+  if (!session) redirect("/login");
   const { id } = await params;
 
-  if (!(await folderBelongsToUser(session!.userId, id))) {
+  if (!(await folderBelongsToUser(session.userId, id))) {
     notFound();
   }
 
-  const listing = await listDrive(session!.userId, id);
+  const listing = await listDrive(session.userId, id);
   return <DriveClient initial={listing} />;
 }

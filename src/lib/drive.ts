@@ -121,7 +121,7 @@ export async function uniqueName(
 
   let candidate = baseName;
   let n = 1;
-  for (;;) {
+  for (let i = 0; i < 1000; i++) {
     const exists = await prisma.file.findFirst({
       where: { userId, parentId, name: candidate },
       select: { id: true },
@@ -130,6 +130,7 @@ export async function uniqueName(
     n += 1;
     candidate = `${stem} (${n})${ext}`;
   }
+  throw new Error("Could not find a unique name");
 }
 
 export async function collectDescendantFiles(
@@ -142,7 +143,7 @@ export async function collectDescendantFiles(
   while (pending.length > 0 && guard++ < 100_000) {
     const id = pending.shift()!;
     const children = await prisma.file.findMany({
-      where: { parentId: id },
+      where: { parentId: id, userId },
       select: { id: true, isFolder: true, storageKey: true },
     });
     for (const child of children) {
